@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISP Bill Generator</title>
+<style>
+:root{--bg:#f3f6fb;--card:#fff;--ink:#172033;--muted:#64748b;--accent:#1769e0;--line:#e2e8f0}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif}
+header{background:linear-gradient(120deg,#102b55,#1769e0);color:#fff;padding:22px 16px}
+.wrap{max-width:1100px;margin:auto;padding:0 16px}header h1{margin:0 0 6px;font-size:25px}header p{margin:0;color:#dbeafe}
+main{max-width:1100px;margin:22px auto;padding:0 16px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:20px;box-shadow:0 5px 20px #0f172a0a}
+h2{font-size:18px;margin:0 0 16px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:block;font-size:13px;font-weight:700;color:#475569;margin-bottom:6px}
+input,textarea,select{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:9px;font-size:15px;background:#fff;color:var(--ink)}
+input:focus,textarea:focus{outline:2px solid #bfdbfe;border-color:var(--accent)}
+.field{margin-bottom:12px}.full{grid-column:1/-1}
+button{border:0;border-radius:9px;padding:12px 15px;font-weight:700;font-size:14px;cursor:pointer}
+.primary{background:var(--accent);color:white}.secondary{background:#eaf1ff;color:#174ea6}.danger{background:#fee2e2;color:#991b1b}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.bill{border:1px dashed #94a3b8;border-radius:12px;padding:20px;background:#fff}
+.bill-top{display:flex;justify-content:space-between;gap:12px;border-bottom:2px solid #172033;padding-bottom:14px;margin-bottom:14px}
+.bill-top h3{margin:0 0 5px;font-size:21px}.small{font-size:12px;color:var(--muted)}
+.bill-number{text-align:right;font-size:13px}.bill-number strong{display:block;font-size:16px;color:var(--ink)}
+.status-stamp{display:inline-block;margin-top:9px;padding:7px 13px;border:3px solid #b91c1c;color:#b91c1c;font-weight:900;letter-spacing:2px;font-size:17px;transform:rotate(-5deg);border-radius:5px}.status-stamp.paid{border-color:#15803d;color:#15803d}.status-stamp.pending{border-color:#b45309;color:#b45309}
+.info{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:15px 0}
+.info div{background:#f8fafc;padding:10px;border-radius:8px;min-width:0}.info span{display:block;color:var(--muted);font-size:11px;margin-bottom:4px}.info strong{font-size:14px;overflow-wrap:anywhere}
+table{width:100%;border-collapse:collapse;margin-top:14px}td,th{padding:11px 7px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{color:#64748b;font-weight:600}
+.total{display:flex;justify-content:space-between;font-weight:800;font-size:20px;padding:15px 0;border-bottom:2px solid #172033}
+.note{font-size:12px;color:var(--muted);margin-top:14px;white-space:pre-wrap}
+.saved{margin-top:18px}.saved-list{max-height:230px;overflow:auto}.saved-item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+.saved-item button{padding:7px 9px;font-size:12px}
+footer{text-align:center;color:#64748b;font-size:12px;padding:8px 16px 25px}
+@media(max-width:760px){main{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr}.panel{padding:15px}}
+@media(max-width:420px){.grid{grid-template-columns:1fr}.bill-top{flex-direction:column}.bill-number{text-align:left}}
+@media print{
+ body{background:#fff}.no-print,header,footer,main>.panel:first-child,.saved{display:none!important}
+ main{display:block;margin:0;padding:0;max-width:none}.panel{border:0;box-shadow:none;padding:0}
+ #bill{border:0;padding:10mm;min-height:260mm}.bill{border:0}
+}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>ISP Bill Generator</h1><p>Create, save and print customer internet bills</p></div></header>
+<main>
+<section class="panel">
+<h2>Customer & Bill Details</h2>
+<div class="grid">
+<div class="field full"><label>ISP / Company Name</label><input id="company" placeholder="Your ISP name" value="My Internet Service"></div>
+<div class="field"><label>Customer Name *</label><input id="name" placeholder="Customer name"></div>
+<div class="field"><label>Customer ID</label><input id="customerId" placeholder="e.g. ISP-001"></div>
+<div class="field"><label>Phone Number</label><input id="phone" placeholder="03xx-xxxxxxx"></div>
+<div class="field"><label>Area / Address</label><input id="address" placeholder="Area or address"></div>
+<div class="field"><label>Package Name</label><input id="package" placeholder="e.g. 20 Mbps"></div>
+<div class="field"><label>Monthly Charges (Rs.) *</label><input id="amount" type="number" min="0" placeholder="1500"></div>
+<div class="field"><label>Previous Balance (Rs.)</label><input id="previous" type="number" min="0" value="0"></div>
+<div class="field"><label>Discount (Rs.)</label><input id="discount" type="number" min="0" value="0"></div>
+<div class="field"><label>Bill Month</label><input id="month" type="month"></div>
+<div class="field"><label>Due Date</label><input id="due" type="date"></div>
+<div class="field"><label>Payment Status</label><select id="status"><option value="UNPAID">Unpaid</option><option value="PENDING">Pending</option><option value="PAID">Paid</option></select></div>
+<div class="field full"><label>Note / Payment Instructions</label><textarea id="note" rows="2" placeholder="Payment method, account details, or thank you note"></textarea></div>
+</div>
+<div class="actions no-print">
+<button class="primary" onclick="generateBill()">Generate Bill</button>
+<button class="secondary" onclick="saveCustomer()">Save Customer</button>
+<button class="secondary" onclick="clearForm()">Clear Form</button>
+</div>
+<div class="saved no-print">
+<h2 style="margin-top:22px">Saved Customers</h2>
+<div id="savedList" class="saved-list"><div class="small">No saved customers yet.</div></div>
+</div>
+</section>
+<section class="panel">
+<div class="actions no-print" style="margin-top:0;margin-bottom:14px">
+<button class="primary" onclick="window.print()">Print / Save PDF</button>
+<button class="secondary" onclick="saveBillImage()">Save Bill Image</button>
+<button class="secondary" onclick="shareWhatsApp()">Share on WhatsApp</button>
+<button class="secondary" onclick="downloadBill()">Download Bill Text</button>
+</div>
+<div id="bill" class="bill">
+<div class="bill-top"><div><h3 id="bCompany">My Internet Service</h3><div class="small">INTERNET SERVICE BILL</div></div><div class="bill-number">Bill No.<strong id="bNumber">—</strong><div class="small" id="bDate">—</div><div id="bStamp" class="status-stamp">UNPAID</div></div></div>
+<div class="info">
+<div><span>CUSTOMER NAME</span><strong id="bName">—</strong></div>
+<div><span>CUSTOMER ID</span><strong id="bId">—</strong></div>
+<div><span>PHONE</span><strong id="bPhone">—</strong></div>
+<div><span>AREA / ADDRESS</span><strong id="bAddress">—</strong></div>
+<div><span>PACKAGE</span><strong id="bPackage">—</strong></div>
+<div><span>BILL MONTH</span><strong id="bMonth">—</strong></div>
+<div><span>DUE DATE</span><strong id="bDue">—</strong></div>
+<div><span>PAYMENT STATUS</span><strong id="bStatus">UNPAID</strong></div>
+</div>
+<table><thead><tr><th>Description</th><th style="text-align:right">Amount (Rs.)</th></tr></thead>
+<tbody><tr><td>Monthly Internet Charges</td><td style="text-align:right" id="bAmount">0</td></tr>
+<tr><td>Previous Balance</td><td style="text-align:right" id="bPrevious">0</td></tr>
+<tr><td>Discount</td><td style="text-align:right" id="bDiscount">0</td></tr></tbody></table>
+<div class="total"><span>Total Due</span><span id="bTotal">Rs. 0</span></div>
+<div class="note" id="bNote">Thank you for choosing our internet service.</div>
+</div>
+</section>
+</main>
+<footer>Simple offline app. Customer records are stored in this browser on this device. Save Bill Image downloads a PNG bill image; on phones, open/share that image from Downloads or Gallery. WhatsApp sharing opens WhatsApp with the bill details as text.</footer>
+<script>
+const $=id=>document.getElementById(id);
+const fields=['company','name','customerId','phone','address','package','amount','previous','discount','month','due','status','note'];
+let currentBillText='';
+function money(n){return Number(n||0).toLocaleString('en-PK')}
+function generateBill(){
+ if(!$('name').value.trim()||$('amount').value===''){alert('Please enter Customer Name and Monthly Charges.');return}
+ const v=id=>$ (id).value.trim();
+ const amount=Number(v('amount'))||0, previous=Number(v('previous'))||0, discount=Number(v('discount'))||0;
+ const total=Math.max(0,amount+previous-discount);
+ const billNo='BILL-'+Date.now().toString().slice(-7);
+ const now=new Date();
+ $('bCompany').textContent=v('company')||'Internet Service';
+ $('bNumber').textContent=billNo;
+ $('bDate').textContent='Generated: '+now.toLocaleDateString();
+ $('bName').textContent=v('name');$('bId').textContent=v('customerId')||'—';
+ $('bPhone').textContent=v('phone')||'—';$('bAddress').textContent=v('address')||'—';
+ const status=(v('status')||'UNPAID').toUpperCase(); const stamp=$('bStamp'); stamp.textContent=status; stamp.className='status-stamp '+status.toLowerCase(); $('bStatus').textContent=status;
+ $('bPackage').textContent=v('package')||'—';
+ $('bMonth').textContent=v('month')||'—';$('bDue').textContent=v('due')||'—';
+ $('bAmount').textContent=money(amount);$('bPrevious').textContent=money(previous);
+ $('bDiscount').textContent='-'+money(discount);$('bTotal').textContent='Rs. '+money(total);
+ $('bNote').textContent=v('note')||'Thank you for choosing our internet service.';
+ currentBillText=`${v('company')}\nINTERNET SERVICE BILL\nBill No: ${billNo}\nCustomer: ${v('name')}\nCustomer ID: ${v('customerId')}\nPhone: ${v('phone')}\nAddress: ${v('address')}\nPackage: ${v('package')}\nMonth: ${v('month')}\nDue date: ${v('due')}\nMonthly charges: Rs. ${money(amount)}\nPrevious balance: Rs. ${money(previous)}\nDiscount: Rs. ${money(discount)}\nTOTAL DUE: Rs. ${money(total)}\nPayment Status: ${v('status')||'UNPAID'}\n${v('note')}`;
+}
+function saveCustomer(){
+ if(!$('name').value.trim()){alert('Enter customer name first.');return}
+ const records=JSON.parse(localStorage.getItem('ispCustomers')||'[]');
+ const data={};fields.forEach(f=>data[f]=$(f).value);
+ const idx=records.findIndex(x=>x.customerId&&x.customerId===data.customerId);
+ if(idx>=0)records[idx]=data;else records.push(data);
+ localStorage.setItem('ispCustomers',JSON.stringify(records));renderSaved();alert('Customer saved in this browser.');
+}
+function renderSaved(){
+ const records=JSON.parse(localStorage.getItem('ispCustomers')||'[]');
+ $('savedList').innerHTML=records.length?'':'<div class="small">No saved customers yet.</div>';
+ records.forEach((r,i)=>{
+  const div=document.createElement('div');div.className='saved-item';
+  const span=document.createElement('span');span.textContent=(r.name||'Unnamed')+' · '+(r.customerId||'No ID');
+  const group=document.createElement('div');
+  const load=document.createElement('button');load.className='secondary';load.textContent='Load';load.onclick=()=>{fields.forEach(f=>$(f).value=r[f]||'');generateBill()};
+  const del=document.createElement('button');del.className='danger';del.textContent='Delete';del.onclick=()=>{if(confirm('Delete this saved customer?')){records.splice(i,1);localStorage.setItem('ispCustomers',JSON.stringify(records));renderSaved()}};
+  group.append(load,del);div.append(span,group);$('savedList').append(div);
+ });
+}
+function clearForm(){fields.forEach(f=>$(f).value='');$('previous').value='0';$('discount').value='0';}
+function downloadBill(){
+ if(!currentBillText){generateBill();if(!currentBillText)return}
+ const blob=new Blob([currentBillText],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob);
+ const a=document.createElement('a');a.href=url;a.download='isp-bill.txt';a.click();URL.revokeObjectURL(url);
+}
+
+async function saveBillImage(){
+ if(!$('bName').textContent || $('bName').textContent==='—'){generateBill();if(!$('name').value.trim())return}
+ const el=$('bill'), canvas=document.createElement('canvas'), ctx=canvas.getContext('2d');
+ const w=1000, pad=64, lineH=42;
+ const read=id=>$(id).textContent||'—';
+ const rows=[
+  ['Customer Name',read('bName')],['Customer ID',read('bId')],['Phone',read('bPhone')],
+  ['Area / Address',read('bAddress')],['Package',read('bPackage')],['Bill Month',read('bMonth')],
+  ['Due Date',read('bDue')],['Payment Status',read('bStatus')]
+ ];
+ const items=[
+  ['Monthly Internet Charges',read('bAmount')],['Previous Balance',read('bPrevious')],['Discount',read('bDiscount')]
+ ];
+ const h=570+rows.length*lineH+items.length*lineH;
+ canvas.width=w;canvas.height=h;ctx.fillStyle='#ffffff';ctx.fillRect(0,0,w,h);
+ ctx.fillStyle='#172033';ctx.fillRect(0,0,w,12);
+ ctx.fillStyle='#172033';ctx.font='bold 38px Arial';ctx.fillText(read('bCompany'),pad,75);
+ ctx.font='20px Arial';ctx.fillStyle='#64748b';ctx.fillText('INTERNET SERVICE BILL',pad,112);
+ ctx.textAlign='right';ctx.fillStyle='#172033';ctx.font='bold 22px Arial';ctx.fillText('Bill No. '+read('bNumber'),w-pad,72);
+ ctx.font='17px Arial';ctx.fillStyle='#64748b';ctx.fillText(read('bDate'),w-pad,104);ctx.textAlign='left';
+ const status=read('bStatus');let color=status==='PAID'?'#15803d':status==='PENDING'?'#b45309':'#b91c1c';
+ ctx.strokeStyle=color;ctx.lineWidth=5;ctx.strokeRect(w-260,130,190,55);ctx.fillStyle=color;ctx.font='bold 27px Arial';ctx.textAlign='center';ctx.fillText(status,w-165,167);ctx.textAlign='left';
+ let y=225;
+ rows.forEach(([k,v],i)=>{const x=(i%2===0)?pad:w/2+15;const yy=y+Math.floor(i/2)*lineH*1.55;ctx.fillStyle='#f1f5f9';ctx.fillRect(x,yy-28,420,62);ctx.fillStyle='#64748b';ctx.font='15px Arial';ctx.fillText(k.toUpperCase(),x+14,yy-5);ctx.fillStyle='#172033';ctx.font='bold 19px Arial';ctx.fillText(String(v).slice(0,34),x+14,yy+20);});
+ y+=Math.ceil(rows.length/2)*lineH*1.55+18;
+ ctx.fillStyle='#172033';ctx.font='bold 19px Arial';ctx.fillText('DESCRIPTION',pad,y);ctx.textAlign='right';ctx.fillText('AMOUNT (RS.)',w-pad,y);ctx.textAlign='left';y+=22;
+ ctx.strokeStyle='#cbd5e1';ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-pad,y);ctx.stroke();
+ items.forEach(([k,v])=>{y+=lineH;ctx.fillStyle='#172033';ctx.font='19px Arial';ctx.fillText(k,pad,y);ctx.textAlign='right';ctx.fillText(v,w-pad,y);ctx.textAlign='left';ctx.strokeStyle='#e2e8f0';ctx.beginPath();ctx.moveTo(pad,y+12);ctx.lineTo(w-pad,y+12);ctx.stroke();});
+ y+=70;ctx.fillStyle='#172033';ctx.font='bold 29px Arial';ctx.fillText('TOTAL DUE',pad,y);ctx.textAlign='right';ctx.fillText(read('bTotal'),w-pad,y);ctx.textAlign='left';
+ y+=55;ctx.fillStyle='#64748b';ctx.font='17px Arial';ctx.fillText(($('bNote').textContent||'').slice(0,100),pad,y);
+ const link=document.createElement('a');link.download='ISP-Bill-'+read('bNumber')+'.png';link.href=canvas.toDataURL('image/png');link.click();
+}
+function shareWhatsApp(){
+ if(!$('bName').textContent || $('bName').textContent==='—'){generateBill();if(!$('name').value.trim())return}
+ const msg=`${$('bCompany').textContent}\nInternet Bill\nBill No: ${$('bNumber').textContent}\nCustomer: ${$('bName').textContent}\nPackage: ${$('bPackage').textContent}\nMonth: ${$('bMonth').textContent}\nDue Date: ${$('bDue').textContent}\nStatus: ${$('bStatus').textContent}\nTotal Due: ${$('bTotal').textContent}\nPlease pay before the due date.`;
+ const url='https://wa.me/?text='+encodeURIComponent(msg);
+ window.open(url,'_blank');
+}
+
+const d=new Date();$('month').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+$('due').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-10';
+renderSaved();generateBill();
+</script>
+</body></html>
